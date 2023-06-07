@@ -55,6 +55,8 @@ def crear_equipo():
         group_id_start = location.find("(") + 1
         group_id_end = location.find(")")
         group_id = location[group_id_start:group_id_end]
+        group_id = group_id[1:]
+        group_id = group_id[:-1]
         equipo_actual = group_id
         print(f"Equipo '{display_name}' creado exitosamente.")
         trabajar_equipo_actual()
@@ -88,22 +90,70 @@ def crear_canal_publico():
     global equipo_actual
     print("== Crear Canal Público ==")
     canal_name = input("Introduce el nombre del canal público: ")
+
     # Código para crear el canal público en el equipo actual
-    print(f"Canal público '{canal_name}' creado exitosamente.")
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+        'Content-Type': 'application/json'
+    }
+    data = {
+        "displayName": canal_name,
+        "description": "Canal público"
+    }
+    response = requests.post(f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels", headers=headers, json=data)
+
+    if response.status_code == 201:
+        channel_id = response.json()['id']
+        print(f"Canal público '{canal_name}' creado exitosamente con ID: {channel_id}")
+    else:
+        print("Error al crear el canal público:", response.text)
 
 def crear_canal_privado():
     global equipo_actual
     print("== Crear Canal Privado ==")
     canal_name = input("Introduce el nombre del canal privado: ")
+
     # Código para crear el canal privado en el equipo actual
-    print(f"Canal privado '{canal_name}' creado exitosamente.")
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+        'Content-Type': 'application/json'
+    }
+    data = {
+        "displayName": canal_name,
+        "description": "Canal privado",
+        "membershipType": "private"
+    }
+    response = requests.post(f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels", headers=headers, json=data)
+
+    if response.status_code == 201:
+        channel_id = response.json()['id']
+        print(f"Canal privado '{canal_name}' creado exitosamente con ID: {channel_id}")
+    else:
+        print("Error al crear el canal privado:", response.text)
 
 def listar_canales():
     global equipo_actual
     print("== Listar Canales Disponibles ==")
+
     # Código para obtener y mostrar la lista de canales del equipo actual
-    print("Lista de canales:")
-    # Mostrar los canales obtenidos
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+        'Content-Type': 'application/json'
+    }
+    response = requests.get(f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels", headers=headers)
+
+    if response.status_code == 200:
+        canales = response.json().get('value', [])
+        if canales:
+            print("Lista de canales:")
+            for canal in canales:
+                canal_id = canal.get('id')
+                canal_nombre = canal.get('displayName')
+                print(f"ID: {canal_id} - Nombre: {canal_nombre}")
+        else:
+            print("No se encontraron canales en el equipo.")
+    else:
+        print("Error al obtener la lista de canales:", response.text)
 
 def borrarPantalla(): #Definimos la función estableciendo el nombre que queramos
     if os.name == "posix":
