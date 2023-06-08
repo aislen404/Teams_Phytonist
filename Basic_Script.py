@@ -1,5 +1,7 @@
 import requests
 import os
+from colorama import init
+from termcolor import colored
 
 # Variables globales
 user_id = None
@@ -8,8 +10,9 @@ group_id = None
 equipo_actual = None
 
 def login_usuario():
+    borrarPantalla()
     global user_id, access_token
-    print("== Proveer Access Token ==")
+    print(colored("== Proveer Access Token ==",'blue','on_yellow'))
     # token_file = input("Introduce el nombre del archivo que contiene el access_token: ")
     token_file = 'access_token.txt'
     try:
@@ -36,7 +39,7 @@ def obtener_user_id():
 
 def crear_equipo():
     global equipo_actual
-    print("== Crear Teams ==")
+    print(colored("== Crear Teams ==",'blue','on_yellow'))
     display_name = input("Introduce el nombre del grupo: ")
     description = input("Introduce la descripción del grupo: ")
     group_data = {
@@ -63,32 +66,9 @@ def crear_equipo():
     else:
         print("Error al crear el equipo:", response.text)
 
-def trabajar_equipo_actual():
-    global equipo_actual
-    print(f"\n=== TRABAJANDO SOBRE EL EQUIPO {equipo_actual} ===")
-    while True:
-        print("\n=== OPCIONES ===")
-        print("1. Crear Canal Público")
-        print("2. Crear Canal Privado")
-        print("3. Listar Canales Disponibles")
-        print("4. Volver al Menú Principal")
-
-        opcion = input("Selecciona una opción (1-4): ")
-
-        if opcion == '1':
-            crear_canal_publico()
-        elif opcion == '2':
-            crear_canal_privado()
-        elif opcion == '3':
-            listar_canales()
-        elif opcion == '4':
-            break
-        else:
-            print("Opción inválida. Intenta de nuevo.")
-
 def crear_canal_publico():
     global equipo_actual
-    print("== Crear Canal Público ==")
+    print(colored("== Crear Canal Público ==",'yellow','on_blue'))
     canal_name = input("Introduce el nombre del canal público: ")
 
     # Código para crear el canal público en el equipo actual
@@ -104,13 +84,13 @@ def crear_canal_publico():
 
     if response.status_code == 201:
         channel_id = response.json()['id']
-        print(f"Canal público '{canal_name}' creado exitosamente con ID: {channel_id}")
+        print(colored(f"Canal público '{canal_name}' creado exitosamente con ID: {channel_id}",'green','on_red'))
     else:
-        print("Error al crear el canal público:", response.text)
+        print(colored("Error al crear el canal público:", response.text,'red'))
 
 def crear_canal_privado():
     global equipo_actual
-    print("== Crear Canal Privado ==")
+    print(colored("== Crear Canal Privado ==",'yellow','on_blue'))
     canal_name = input("Introduce el nombre del canal privado: ")
 
     # Código para crear el canal privado en el equipo actual
@@ -127,13 +107,13 @@ def crear_canal_privado():
 
     if response.status_code == 201:
         channel_id = response.json()['id']
-        print(f"Canal privado '{canal_name}' creado exitosamente con ID: {channel_id}")
+        print(colored(f"Canal privado '{canal_name}' creado exitosamente con ID: {channel_id}",'green','on_red'))
     else:
-        print("Error al crear el canal privado:", response.text)
+        print(colored("Error al crear el canal privado:", response.text,'red'))
 
 def listar_canales():
     global equipo_actual
-    print("== Listar Canales Disponibles ==")
+    print(colored("== Listar Canales Disponibles ==",'yellow','on_blue'))
 
     # Código para obtener y mostrar la lista de canales del equipo actual
     headers = {
@@ -145,15 +125,47 @@ def listar_canales():
     if response.status_code == 200:
         canales = response.json().get('value', [])
         if canales:
-            print("Lista de canales:")
+            print(colored("Lista de canales:",'white','on_black'))
             for canal in canales:
                 canal_id = canal.get('id')
                 canal_nombre = canal.get('displayName')
                 print(f"ID: {canal_id} - Nombre: {canal_nombre}")
         else:
-            print("No se encontraron canales en el equipo.")
+            print(colored("No se encontraron canales en el equipo.",'red'))
     else:
-        print("Error al obtener la lista de canales:", response.text)
+        print(colored("Error al obtener la lista de canales:", response.text,'red'))
+
+def copiar_archivos_al_canal():
+    global equipo_actual
+    print(colored("== Copiar Archivos al Canal ==",'yellow','on_blue'))
+
+    # Obtener el ID del canal
+    canal_id = input("Introduce el ID del canal: ")
+
+    # Obtener la ruta local de la carpeta con los archivos a copiar
+    ruta_local = input("Introduce la ruta local de la carpeta con los archivos a copiar: ")
+
+    # Código para copiar los archivos al canal
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+        'Content-Type': 'application/json'
+    }
+
+    # Obtener lista de archivos en la carpeta local
+    archivos = os.listdir(ruta_local)
+
+    # Copiar cada archivo al canal
+    for archivo in archivos:
+        nombre_archivo = os.path.basename(archivo)
+        url = f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels/{canal_id}/files/{nombre_archivo}/content"
+        with open(archivo, 'rb') as file:
+            response = requests.put(url, headers=headers, data=file)
+            if response.status_code == 201:
+                print(f"Archivo '{nombre_archivo}' copiado exitosamente al canal.")
+            else:
+                print(f"Error al copiar el archivo '{nombre_archivo}' al canal:", response.text)
+
+    print("Copia de archivos finalizada.")
 
 def borrarPantalla(): #Definimos la función estableciendo el nombre que queramos
     if os.name == "posix":
@@ -161,15 +173,44 @@ def borrarPantalla(): #Definimos la función estableciendo el nombre que queramo
     elif os.name == "ce" or os.name == "nt" or os.name == "dos":
        os.system ("cls")
 
+def trabajar_equipo_actual():
+    borrarPantalla()
+    global equipo_actual
+    print(colored(f"\n=== TRABAJANDO SOBRE EL TEAMS {equipo_actual} ===",'green','on_red'))
+    while True:
+        print(colored("\n=== OPCIONES ===",'blue','on_yellow'))
+        print("1. Crear Canal Público")
+        print("2. Crear Canal Privado")
+        print("3. Listar Canales Disponibles")
+        print("4. Copiar Filesystem a Canal")
+        print("5. Volver al Menú Principal")
+
+        opcion = input("Selecciona una opción (1-5): ")
+
+        if opcion == '1':
+            crear_canal_publico()
+        elif opcion == '2':
+            crear_canal_privado()
+        elif opcion == '3':
+            listar_canales()
+        elif opcion == '4':
+            copiar_archivos_al_canal()            
+        elif opcion == '5':
+            break
+        else:
+            print(colored("Opción inválida. Intenta de nuevo.",'red'))
+
 def volver_menu_principal():
-    input("\nPresiona Enter para volver al menú principal...")
+    input(colored("\nPresiona Enter para volver al menú principal...",'white','black','bright'))
+    borrarPantalla()
     mostrar_menu_principal()
 
 def mostrar_menu_principal():
+    borrarPantalla()
     while True:
-        print("\n=== MENÚ PRINCIPAL ===")
+        print(colored("\n=== MENÚ PRINCIPAL ===",'green','on_red'))
         print("1. Proveer Access Token")
-        print("2. Crear Equipo")
+        print("2. Crear Teams")
         print("3. Salir")
 
         opcion = input("Selecciona una opción (1-3): ")
@@ -180,11 +221,11 @@ def mostrar_menu_principal():
             if user_id and access_token:
                 crear_equipo()
             else:
-                print("Primero debes iniciar sesión.")
+                print(colored("Primero debes iniciar sesión.",'red'))
         elif opcion == '3':
             break
         else:
-            print("Opción inválida. Intenta de nuevo.")
+            print(colored("Opción inválida. Intenta de nuevo.",'red'))
 
         if opcion == '3':
             break
