@@ -20,11 +20,11 @@ def login_usuario():
             access_token = file.read().strip()
         user_id = obtener_user_id()
         if user_id:
-            print("¡Inicio de sesión exitoso!")
+            print(colored("¡Inicio de sesión exitoso!",'white','on_black'))
         else:
-            print("Error en el inicio de sesión. Verifica el access_token.")
+            print(colored("Error en el inicio de sesión. Verifica el access_token.",'red','on_white'))
     except FileNotFoundError:
-        print("Archivo no encontrado. Verifica el nombre y la ubicación del archivo.")
+        print(colored("Archivo no encontrado. Verifica el nombre y la ubicación del archivo.",'red','on_white'))
 
 def obtener_user_id():
     global access_token
@@ -40,8 +40,8 @@ def obtener_user_id():
 def crear_equipo():
     global equipo_actual
     print(colored("== Crear Teams ==",'blue','on_yellow'))
-    display_name = input("Introduce el nombre del grupo: ")
-    description = input("Introduce la descripción del grupo: ")
+    display_name = input("Introduce el nombre del Team: ")
+    description = input("Introduce la descripción del Team: ")
     group_data = {
         'template@odata.bind': "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
         'displayName': display_name,
@@ -61,10 +61,17 @@ def crear_equipo():
         group_id = group_id[1:]
         group_id = group_id[:-1]
         equipo_actual = group_id
-        print(f"Equipo '{display_name}' creado exitosamente.")
+        print(f"Team '{display_name}' creado exitosamente.")
         trabajar_equipo_actual()
     else:
-        print("Error al crear el equipo:", response.text)
+        print (Colored("Error al crear el Team:",'red','on_white'))
+        print (response.text)
+
+def conectar_equipo():
+    global equipo_actual
+    print(colored("== Conectar a Team ==",'blue','on_yellow'))
+    equipo_actual = input("Introduce el UID del Team (no se validara hasta su empleo en alguna accion): ")
+    trabajar_equipo_actual()
 
 def crear_canal_publico():
     global equipo_actual
@@ -78,7 +85,8 @@ def crear_canal_publico():
     }
     data = {
         "displayName": canal_name,
-        "description": "Canal público"
+        "description": "Canal público",
+        "auto-pin": "On"
     }
     response = requests.post(f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels", headers=headers, json=data)
 
@@ -86,7 +94,8 @@ def crear_canal_publico():
         channel_id = response.json()['id']
         print(colored(f"Canal público '{canal_name}' creado exitosamente con ID: {channel_id}",'green','on_red'))
     else:
-        print(colored("Error al crear el canal público:", response.text,'red'))
+        print(colored("Error al crear el canal público:"),'red','on_white')
+        print(response.text)
 
 def crear_canal_privado():
     global equipo_actual
@@ -101,7 +110,8 @@ def crear_canal_privado():
     data = {
         "displayName": canal_name,
         "description": "Canal privado",
-        "membershipType": "private"
+        "membershipType": "private",
+        "auto-pin": "On"
     }
     response = requests.post(f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels", headers=headers, json=data)
 
@@ -109,7 +119,8 @@ def crear_canal_privado():
         channel_id = response.json()['id']
         print(colored(f"Canal privado '{canal_name}' creado exitosamente con ID: {channel_id}",'green','on_red'))
     else:
-        print(colored("Error al crear el canal privado:", response.text,'red'))
+        print(colored("Error al crear el canal privado:",'red','on_white'))
+        print(response.text)
 
 def listar_canales():
     global equipo_actual
@@ -131,21 +142,12 @@ def listar_canales():
                 canal_nombre = canal.get('displayName')
                 print(f"ID: {canal_id} - Nombre: {canal_nombre}")
         else:
-            print(colored("No se encontraron canales en el equipo.",'red'))
+            print(colored("No se encontraron canales en el equipo.",'red','on_white'))
     else:
-        print(colored("Error al obtener la lista de canales:", response.text,'red'))
+        print(colored("Error al obtener la lista de canales:",'red','on_white'))
+        print(response.text)
 
-def copiar_archivos_al_canal():
-    global equipo_actual
-    print(colored("== Copiar Archivos al Canal ==",'yellow','on_blue'))
-
-    # Obtener el ID del canal
-    canal_id = input("Introduce el ID del canal: ")
-
-    # Obtener la ruta local de la carpeta con los archivos a copiar
-    ruta_local = input("Introduce la ruta local de la carpeta con los archivos a copiar: ")
-
-    # Código para copiar los archivos al canal
+def cargar_archivo_en_canal(canal_id, ruta_local):
     headers = {
         'Authorization': 'Bearer ' + access_token,
         'Content-Type': 'application/json'
@@ -157,15 +159,34 @@ def copiar_archivos_al_canal():
     # Copiar cada archivo al canal
     for archivo in archivos:
         nombre_archivo = os.path.basename(archivo)
-        url = f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels/{canal_id}/files/{nombre_archivo}/content"
-        with open(archivo, 'rb') as file:
+        #url = f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels/{canal_id}/files/{nombre_archivo}/content"
+        url = f"https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels/{canal_id}/files"
+        ruta_archivo = os.path.join(ruta_local, archivo)
+        with open(ruta_archivo, 'rb') as file:
             response = requests.put(url, headers=headers, data=file)
-            if response.status_code == 201:
+            if response.status_code == 202:
                 print(f"Archivo '{nombre_archivo}' copiado exitosamente al canal.")
             else:
-                print(f"Error al copiar el archivo '{nombre_archivo}' al canal:", response.text)
+                print(colored("Error al copiar el archivo:",'red','on_white'))
+                print(colored(nombre_archivo,'red','on_white'))
+                print(response.text)
 
-    print("Copia de archivos finalizada.")
+def copiar_archivos_al_canal():
+    global equipo_actual
+    print(colored("== Copiar Archivos al Canal ==",'yellow','on_blue'))
+
+    # Obtener el ID del canal
+    canal_id = input("Introduce el ID del canal: ")
+
+    # Obtener la ruta local de la carpeta con los archivos a copiar
+    #input_ruta_local = input("Introduce la ruta local de la carpeta con los archivos a copiar: ")
+    ruta_local = os.path.join(os.path.dirname(__file__), 'Prueba')
+
+    if not os.path.isdir(ruta_local):
+        print(colored("La ruta especificada no es una carpeta válida.",'red'))
+        return
+
+    cargar_archivo_en_canal(canal_id, ruta_local)
 
 def borrarPantalla(): #Definimos la función estableciendo el nombre que queramos
     if os.name == "posix":
@@ -196,12 +217,13 @@ def trabajar_equipo_actual():
         elif opcion == '4':
             copiar_archivos_al_canal()            
         elif opcion == '5':
+            borrarPantalla()
             break
         else:
             print(colored("Opción inválida. Intenta de nuevo.",'red'))
 
 def volver_menu_principal():
-    input(colored("\nPresiona Enter para volver al menú principal...",'white','black','bright'))
+    input("\nPresiona Enter para volver al menú principal...")
     borrarPantalla()
     mostrar_menu_principal()
 
@@ -210,10 +232,11 @@ def mostrar_menu_principal():
     while True:
         print(colored("\n=== MENÚ PRINCIPAL ===",'green','on_red'))
         print("1. Proveer Access Token")
-        print("2. Crear Teams")
-        print("3. Salir")
+        print("2. Crear Team")
+        print("3. Conectar a un Team")
+        print("4. Salir")
 
-        opcion = input("Selecciona una opción (1-3): ")
+        opcion = input("Selecciona una opción (1-4): ")
 
         if opcion == '1':
             login_usuario()
@@ -221,14 +244,20 @@ def mostrar_menu_principal():
             if user_id and access_token:
                 crear_equipo()
             else:
-                print(colored("Primero debes iniciar sesión.",'red'))
+                borrarPantalla()
+                print(colored("Primero debes iniciar sesión.",'red','on_white'))
         elif opcion == '3':
+            if user_id and access_token:
+                conectar_equipo()
+            else:
+                borrarPantalla()
+                print(colored("Primero debes iniciar sesión.",'red','on_white'))                
+        elif opcion == '4':
+            borrarPantalla()
             break
         else:
-            print(colored("Opción inválida. Intenta de nuevo.",'red'))
-
-        if opcion == '3':
-            break
+            borrarPantalla()
+            print(colored("Opción inválida. Intenta de nuevo.",'red','on_white'))
 
 # Ejecución del script
 mostrar_menu_principal()
