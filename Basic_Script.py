@@ -3,11 +3,6 @@ import os
 from colorama import init
 from termcolor import colored
 
-import requests
-import os
-from colorama import init
-from termcolor import colored
-
 # Variables globales
 user_id = None
 access_token = None
@@ -174,6 +169,53 @@ def listar_canales():
         print(colored("Error al obtener la lista de canales:",'red','on_white'))
         print(response.text)
 
+def listar_archivos_en_canal():
+    global access_token
+    print(colored("== Listar archivos en canal ==",'blue','on_yellow'))
+
+    # Obtener el ID del canal
+    canal_id = input("Introduce el ID del canal: ")
+
+    headers = {
+        'Authorization': 'Bearer ' + access_token,
+        'Content-Type': 'application/json'
+    }
+    response = requests.get(f'https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels/{canal_id}/filesFolder', headers=headers)
+    if response.status_code == 200:
+        files = response.json().get('value', [])
+        if files:
+            print(colored("Archivos en el canal:",'white','on_black'))
+            for file in files:
+                file_id = file.get('id')
+                file_name = file.get('name')
+                created_date_time = file.get('createdDateTime')
+                last_modified_date_time = file.get('lastModifiedDateTime')
+                web_url = file.get('webUrl')
+                size = file.get('size')
+                drive_id = file.get('parentReference', {}).get('driveId')
+                drive_type = file.get('parentReference', {}).get('driveType')
+                created_date = file.get('fileSystemInfo', {}).get('createdDateTime')
+                last_modified_date = file.get('fileSystemInfo', {}).get('lastModifiedDateTime')
+                child_count = file.get('folder', {}).get('childCount')
+
+                print(f"ID: {file_id}")
+                print(f"Nombre: {file_name}")
+                print(f"Fecha de creación: {created_date_time}")
+                print(f"Última fecha de modificación: {last_modified_date_time}")
+                print(f"URL: {web_url}")
+                print(f"Tamaño: {size} bytes")
+                print(f"ID del drive: {drive_id}")
+                print(f"Tipo de drive: {drive_type}")
+                print(f"Fecha de creación del archivo: {created_date}")
+                print(f"Última fecha de modificación del archivo: {last_modified_date}")
+                print(f"Número de archivos en la carpeta: {child_count}")
+                print("-" * 20)
+        else:
+            print(colored("No hay archivos en el canal.",'white','on_black'))
+    else:
+        print(colored("Error al listar archivos:",'red','on_white'))
+        print(response.text)
+
 def obtener_url_carpeta_archivos(equipo_id, canal_id):
     headers = {
         'Authorization': 'Bearer ' + access_token,
@@ -246,10 +288,11 @@ def trabajar_equipo_actual():
         print("1. Crear Canal Público")
         print("2. Crear Canal Privado")
         print("3. Listar Canales Disponibles")
-        print("4. Copiar Filesystem a Canal")
-        print("5. Volver al Menú Principal")
+        print("4. Listar Archivos en Canal")
+        print("5. Copiar Filesystem a Canal")
+        print("6. Volver al Menú Principal")
 
-        opcion = input("Selecciona una opción (1-5): ")
+        opcion = input("Selecciona una opción (1-6): ")
 
         if opcion == '1':
             crear_canal_publico()
@@ -258,8 +301,10 @@ def trabajar_equipo_actual():
         elif opcion == '3':
             listar_canales()
         elif opcion == '4':
-            copiar_archivos_al_canal()            
+            listar_archivos_en_canal()    
         elif opcion == '5':
+            copiar_archivos_al_canal()            
+        elif opcion == '6':
             borrarPantalla()
             break
         else:
@@ -291,6 +336,7 @@ def mostrar_menu_principal():
         elif opcion == '4':
             conectar_equipo()
         elif opcion == '5':
+            borrarPantalla()
             break
         else:
             print(colored("Opción inválida. Por favor, selecciona una opción válida.",'red','on_white'))
