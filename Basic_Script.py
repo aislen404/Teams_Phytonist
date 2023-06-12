@@ -68,7 +68,8 @@ def crear_equipo():
         'template@odata.bind': "https://graph.microsoft.com/v1.0/teamsTemplates('standard')",
         'displayName': display_name,
         'description': description,
-        'groupTypes': ['Unified']
+        'groupTypes': ['Unified'],
+        'securityEnabled': false
     }
     headers = {
         'Authorization': 'Bearer ' + access_token,
@@ -180,7 +181,13 @@ def listar_archivos_en_canal():
         'Authorization': 'Bearer ' + access_token,
         'Content-Type': 'application/json'
     }
-    response = requests.get(f'https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels/{canal_id}/filesFolder', headers=headers)
+
+    repor = "Shared%20Documents/General"
+    carpeta ="'CARPETA MAGICA'"
+    
+    # response = requests.get(f'https://graph.microsoft.com/v1.0/teams/{equipo_actual}/channels/{canal_id}/filesFolder', headers=headers)
+    response = requests.get(f'https://grupovass.sharepoint.com/teams/POLPOT_34/_api/web/getfolderbyserverrelativeurl({repor})/Folders/add(url={carpeta})',headers=headers)
+
     if response.status_code == 200:
         files = response.json().get('value', [])
         if files:
